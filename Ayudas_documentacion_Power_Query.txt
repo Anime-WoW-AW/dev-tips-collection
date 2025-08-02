@@ -1,0 +1,47 @@
+	Esta tabla contiene el BD Celulas que se descarga a dario de Valko SOLO se quitan las Vacantes. El insumo se aloja en la ruta: Reto Informes\40. Archivos Capacidad TI\bdcelulas_Dia.xlsx
+	
+	Esta tabla se genera a partir de los datos de la tabla 'BD Celulas Diario' y tiene como objetivo consolidar, para cada usuario, la asignación de todas las células según Valko que tiene asignadas en una única celda por usuario.
+	
+	las columnas que se utilizan en otras tablas como consulta o como insumo para calculos
+	
+Conexion a CSV --> Power Query
+let
+	// Conexion con el SharePoint del area de Capacidad
+    Origen = SharePoint.Files("https://bancolombia.sharepoint.com/teams/GestindelaCapacidaddeTI", [ApiVersion = 15]),
+	
+    // Buscar la ruta y archivo que contiene la informacion
+    #"Selecionar archivo a importar" = Origen{[Name="EVC_CdE_Azure-Page1-Componente1.csv",#"Folder Path"="https://bancolombia.sharepoint.com/teams/GestindelaCapacidaddeTI/Documentos compartidos/Reto Informes/34. Insumos CONECTADOS/Asignacion_Funciona_Conectados/"]}[Content],
+
+    // Importar archivo a consultar INDICANDO la cantidad de Columnas que tiene
+    #"CSV importado" = Csv.Document(#"Selecionar archivo a importar",[Delimiter=",", Columns=16, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"---------------" = #"CSV importado",
+	
+	
+Conexion a Excel --> Power Query
+let
+    // Conexion con el SharePoint del area de Capacidad
+    Origen = SharePoint.Files("https://bancolombia.sharepoint.com/teams/GestindelaCapacidaddeTI", [ApiVersion = 15]),
+
+    // Buscar la ruta y archivo que contiene la informacion
+    Personalizado1 = Origen{[Name="2020_bd_celulas.xlsx",#"Folder Path"="https://bancolombia.sharepoint.com/teams/GestindelaCapacidaddeTI/Documentos compartidos/Reto Informes/40. Archivos Capacidad TI/bd_celulas_historicos/"]}[Content],
+
+    // Seleccionar el archivo que contiene la data
+    #"Libro de Excel importado" = Excel.Workbook(Personalizado1),
+
+    // Seleccionar la hoja del Excel que contiene la data
+    CELULAS_Sheet = #"Libro de Excel importado"{[Item="CELULAS",Kind="Sheet"]}[Data],
+
+    // Colocar la primer fila como nombre de las columnas
+    #"Encabezados promovidos" = Table.PromoteHeaders(CELULAS_Sheet, [PromoteAllScalars=true])
+	
+    #"---------------" = #"Encabezados promovidos",
+
+
+
+ // Definir una función para reemplazar caracteres (tildes)
+    ReemplazarCaracteres = (texto as text) as text =>Text.Replace(Text.Replace(Text.Replace(Text.Replace(Text.Replace(Text.Replace(texto, "Ú", "U"), "Á", "A"), "Í", "I"), "Ó", "O"), "É", "E"), "Ñ", "N"),
+
+    // Aplicar la función a la columna CIUDAD traida desde Valko
+    #"Columna Transformada" = Table.TransformColumns(#"Se expandió Planta TI + SUFI", {{"CIUDAD", ReemplazarCaracteres}}),
+	
+	

@@ -1,0 +1,50 @@
+Crear un entorno: Puedes crear un entorno de Python con Mamba (o Conda) de la siguiente manera:
+	mamba create -n mi_entorno python=3.9
+
+Activar el entorno: Una vez que el entorno está creado, lo puedes activar con el siguiente comando:
+	conda activate mi_entorno
+
+Instalar paquetes: Para instalar paquetes en tu entorno, usa Mamba (o Conda). Por ejemplo, para instalar numpy:
+	mamba install numpy
+	
+	Otra opcion multiple:
+	mamba  install pandas numpy matplotlib
+
+
+Listar entornos: Para ver todos los entornos creados, usa el siguiente comando:
+	conda env list
+
+		*** Generalidades
+		-> Usa mamba para gestionar paquetes
+		-> Usa conda para gestionar entornos
+		
+		***  Crear un entorno virtual
+		mamba create -n nombre_del_entorno python=3.9
+		
+		*** Activar el entorno
+		conda activate nombre_del_entorno
+		
+		*** Instalar paquetes
+		mamba install numpy pandas matplotlib
+		
+		*** Listar los entornos existentes
+		conda env list
+		
+		*** Desactivar el entorno
+		conda deactivate
+
+		*** Eliminar un entorno
+		conda env remove -n nombre_del_entorno
+
+		*** Actualizar paquetes
+		mamba update numpy
+		
+		*** Buscar paquetes disponibles
+		mamba search nombre_paquete
+		
+		*** Mostrar información sobre un entorno
+		conda info
+
+
+
+

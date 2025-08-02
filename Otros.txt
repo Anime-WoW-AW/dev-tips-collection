@@ -1,0 +1,35 @@
+La conexion a Analytics views (Boards only) por Power Bi es:
+	* Obtener Datos
+	* Azure DevOps(Boards Only)
+	* Direccion url de la coleccion: GrupoBancolombia
+	* Proyecto de equipo: Vicepresidencia Servicios de Tecnología
+	* Busco la consulta donde la tenga y cargo/transformo los datos
+	
+
+	INSTALAR LIBRERIAS EN Python:
+		*** Como sale un problema o Warning relacionado con el Certificado SSL, entonces se puede instalar sin el certificado confiando, se puede forzar la instalación de ipykernel sin que pip verifique los certificados SSL. Para hacerlo, agrega la opción --trusted-host al comando, como se muestra a continuación:
+		
+		*** Asi instalo el Kernel de Python 
+		c:/Users/USERXXX/AppData/Local/Programs/Python/Python39/python.exe -m pip install ipykernel --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org --user
+		
+		*** Asi instalo las libreria necesarias:
+		c:/Users/USERXXX/AppData/Local/Programs/Python/Python39/python.exe -m pip install numpy scikit-learn seaborn --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --user
+		
+		De esta forma tambien desde Visual con el entorno seleccionado:
+		pip install pillow --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org
+		pip install pandas --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org
+		
+	
+	AGREGAR VARIABLES DEL SISTEMA:
+		-- Variables de entorno para Python:
+		C:\Users\USERXXX\AppData\Local\Programs\Python\Python39
+		C:\Users\USERXXX\AppData\Local\Programs\Python\Python39\Scripts
+		
+		-- Variables de entorno para Mambaforge - creacion de entornos virtuales para manejar versionamiento:
+		C:\Users\USERXXX\AppData\Local\mambaforge\Scripts
+		C:\Users\USERXXX\AppData\Local\mambaforge\condabin
+			
+		-- Variables de entorno para MySQL:
+		C:\Program Files\MySQL\MySQL Workbench 8.0 CE
+		
+		

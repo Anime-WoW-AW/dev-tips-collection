@@ -1,0 +1,144 @@
+*** Documentar una Tabla:
+
+Tabla que tiene como objetivo [verbo: mostrar / calcular / consolidar / resumir / detallar] la información relacionada con [tema o enfoque].
+Se alimenta de '[origen: nombre del archivo, base de datos, tabla intermedia, etc.]' descargado de [la herramienta de donde se descarga].
+Ruta del origen: [especificar la ruta donde esta el insumo].
+Frecuencia de actualización: [manual / diaria / automática / según origen].
+Notas adicionales: [opcional: filtros aplicados, transformaciones clave, relación con otras tablas]
+
+
+
+*** Create table calendary for Power Bi: en DAX:
+
+	Dim_Calendario =
+		VAR anio_min = DATE(YEAR(MIN(Consolidado_Commits[commit_date])), 01, 01) 
+		VAR anio_max = DATE(YEAR(MAX(Consolidado_Commits[commit_date])), 12, 31)
+
+		RETURN
+		ADDCOLUMNS(
+			CALENDAR(anio_min, anio_max),   -- o tambien puedo usar: CALENDARAUTO(),  -- Calendario automatico teniendo en cuenta las fechas de todas las tablas
+			"FechaSK", FORMAT([Date], "YYYYMMDD"), -- Fecha en otro formato
+			"#_anio", YEAR([Date]),
+			"#_trimestre", QUARTER([Date]),
+			"Trimestre", "T" & FORMAT([Date], "Q"),
+			"#_mes", MONTH([Date]),
+			"Mes_letra", FORMAT([Date], "MMMM"),
+			"Mes_corto_letras", FORMAT([Date], "MMM"),
+			"#_dia", DAY([Date]),
+			"#_dia_semana", WEEKDAY([Date], 2),
+			"Dia_semana_letras", FORMAT([Date], "DDDD"),
+			"Dia_semana_corto_letras", FORMAT([Date], "DDD"),
+			"#_semana_anio", WEEKNUM([Date], 2),
+			"Cierre_semana", ([Date] + 7 - WEEKDAY([Date], 2)),
+			"Anio/trimestre", FORMAT([Date], "YYYY") & "/T" & FORMAT([Date], "Q"),
+			"Anio/#_mes", FORMAT([Date], "YYYY/MM"),
+			"Anio/mes_corto_letras", FORMAT([Date], "YYYY/mmm"),
+			"Inio_mes", EOMONTH([Date], -1) + 1,
+			"Fin_mes", EOMONTH([Date], 0)
+		)
+	
+*** Agregar otras columnas para el sprint:
+	Sprint = 
+	VAR dias_desde_inicio = DATEDIFF(DATE(2018, 02, 07),Dim_Calendario[Date], DAY) -- El sprint 29 empezo el 07/02/2018
+	RETURN
+		"Sprint " & 29 + QUOTIENT(dias_desde_inicio, 14)
+	
+	Sprint_detallado = 
+    VAR num_sprint = Dim_Calendario[Sprint]
+    VAR fecha_inicio = MINX(FILTER('Dim_Calendario', Dim_Calendario[Sprint] = num_sprint), 'Dim_Calendario'[Date])
+    VAR fecha_fin = MAXX(FILTER('Dim_Calendario', Dim_Calendario[Sprint] = num_sprint), 'Dim_Calendario'[Date])
+    RETURN
+        num_sprint & ": " & 
+        FORMAT(fecha_inicio, "mmm/dd/yyyy") & " - " & 
+        FORMAT(fecha_fin, "mmm/dd/yyyy")
+	
+*** Create table calendary for Power Bi: en M (Power Query):
+
+	Si cargo fechas fijas comienza asi:
+	let
+		FechaInicio = #date(2024,1,1),
+		FechaFinal = Date.From(DateTime.LocalNow()),
+		ListaInicioFinal = {Number.From(FechaInicio)..Number.From(FechaFinal)},
+		...
+
+	Si cargo desde una tabla la fecha inicial y fecha final
+	let
+		Source = #"Name_table"[Name_column_type_date],
+		FechaInicio = #date(Date.Year(List.Min(Source)),1,1),
+		FechaFinal = #date(Date.Year(List.Max(Source)),12,31),
+		ListaInicioFinal = {Number.From(FechaInicio)..Number.From(FechaFinal)},
+		#"Converted to Table" = Table.FromList(ListaInicioFinal, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+		#"Changed Type" = Table.TransformColumnTypes(#"Converted to Table",{{"Column1", type date}}),
+		#"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Column1", "Fecha"}}),
+		#"Added Custom Column" = Table.AddColumn(#"Renamed Columns", "Custom", each Text.Combine({Date.ToText([Fecha], "yyyy"), Date.ToText([Fecha], "MM"), Date.ToText([Fecha], "dd")}), type text),
+		#"Inserted Year" = Table.AddColumn(#"Added Custom Column", "Year", each Date.Year([Fecha]), Int64.Type),
+		#"Inserted Quarter" = Table.AddColumn(#"Inserted Year", "Quarter", each Date.QuarterOfYear([Fecha]), Int64.Type),
+		#"Inserted Month" = Table.AddColumn(#"Inserted Quarter", "Month", each Date.Month([Fecha]), Int64.Type),
+		#"Inserted Day" = Table.AddColumn(#"Inserted Month", "Day", each Date.Day([Fecha]), Int64.Type),
+		#"Inserted Merged Column" = Table.AddColumn(#"Inserted Day", "Merged", each Text.Combine({"T", Text.From([Quarter], "es-MX")}), type text),
+		#"Inserted Month Name" = Table.AddColumn(#"Inserted Merged Column", "Month Name", each Date.MonthName([Fecha]), type text),
+		#"Inserted First Characters" = Table.AddColumn(#"Inserted Month Name", "First Characters", each Text.Start([Month Name], 3), type text),
+		#"Inserted Day of Week" = Table.AddColumn(#"Inserted First Characters", "Day of Week", each Date.DayOfWeek([Fecha]), Int64.Type),
+		#"Inserted Week of Year" = Table.AddColumn(#"Inserted Day of Week", "Week of Year", each Date.WeekOfYear([Fecha]), Int64.Type),
+		#"Inserted Week of Month" = Table.AddColumn(#"Inserted Week of Year", "Week of Month", each Date.WeekOfMonth([Fecha]), Int64.Type),
+		#"Inserted End of Week" = Table.AddColumn(#"Inserted Week of Month", "End of Week", each Date.EndOfWeek([Fecha],Day.Monday), type date),
+		#"Inserted Day of Year" = Table.AddColumn(#"Inserted End of Week", "Day of Year", each Date.DayOfYear([Fecha]), Int64.Type),
+		#"Inserted Day Name" = Table.AddColumn(#"Inserted Day of Year", "Day Name", each Date.DayOfWeekName([Fecha]), type text),
+		#"Inserted First Characters1" = Table.AddColumn(#"Inserted Day Name", "First Characters.1", each Text.Start([Day Name], 3), type text),
+		#"Inserted Merged Column1" = Table.AddColumn(#"Inserted First Characters1", "Merged.1", each Text.Combine({Text.From([Year], "es-MX"), [Merged]}, "/"), type text),
+		#"Inserted First Characters2" = Table.AddColumn(#"Inserted Merged Column1", "First Characters.2", each Text.Start([Custom], 6), type text),
+		#"Split Column by Position" = Table.SplitColumn(#"Inserted First Characters2", "First Characters.2", Splitter.SplitTextByPositions({0, 4}, false), {"First Characters.2.1", "First Characters.2.2"}),
+		#"Merged Columns" = Table.CombineColumns(#"Split Column by Position",{"First Characters.2.1", "First Characters.2.2"},Combiner.CombineTextByDelimiter("/", QuoteStyle.None),"Merged.3"),
+		#"Inserted Merged Column2" = Table.AddColumn(#"Merged Columns", "Merged.2", each Text.Combine({Text.From([Year], "es-MX"), "/", [First Characters]}), type text),
+		#"Replaced Value" = Table.ReplaceValue(#"Inserted Merged Column2",0,7,Replacer.ReplaceValue,{"Day of Week"}),
+		#"Renamed Columns1" = Table.RenameColumns(#"Replaced Value",{{"Custom", "FechaSK"}, {"Year", "#Año"}, {"Quarter", "#Trimestre"}, {"Month", "#Mes"}, {"Day", "#Día"}, {"Merged", "Trimestre"}, {"Month Name", "Mes"}, {"First Characters", "MesCorto"}, {"Day of Week", "#DíaSemana"}, {"Week of Year", "#SemanaAño"}, {"Week of Month", "#SemanaMes"}, {"End of Week", "CierreSemana"}, {"Day of Year", "#DíaAño"}, {"Day Name", "Día"}, {"First Characters.1", "DíaCorto"}, {"Merged.1", "AñoTrimestre"}, {"Merged.3", "Año#Mes"}, {"Merged.2", "AñoMesCorto"}}),
+		#"Inserted Start of Month" = Table.AddColumn(#"Renamed Columns1", "Start of Month", each Date.StartOfMonth([Fecha]), type date),
+		#"Renamed Columns2" = Table.RenameColumns(#"Inserted Start of Month",{{"Start of Month", "InicioMes"}}),
+		#"Inserted End of Month" = Table.AddColumn(#"Renamed Columns2", "End of Month", each Date.EndOfMonth([Fecha]), type date),
+		#"Renamed Columns3" = Table.RenameColumns(#"Inserted End of Month",{{"End of Month", "FinMes"}})
+	in
+		#"Renamed Columns3"
+		
+*** Crear desde Power Bi en M (Power Query):una tabla con los Sprint y sus fechas:
+	let
+		FechaInicio = #date(2024,1,1),
+		FechaFinal = Date.AddYears(Date.From(DateTime.LocalNow()), 1),
+		ListaInicioFinal = {Number.From(FechaInicio)..Number.From(FechaFinal)},
+		#"Converted to Table" = Table.FromList(ListaInicioFinal, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+		#"Changed Type" = Table.TransformColumnTypes(#"Converted to Table",{{"Column1", type date}}),
+		#"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Column1", "Fecha"}}),
+		#"Added Custom Column" = Table.AddColumn(#"Renamed Columns", "Custom", each Text.Combine({Date.ToText([Fecha], "yyyy"), Date.ToText([Fecha], "MM"), Date.ToText([Fecha], "dd")}), type text),
+		#"Inserted Year" = Table.AddColumn(#"Added Custom Column", "Year", each Date.Year([Fecha]), Int64.Type),
+		//#"Inserted Quarter" = Table.AddColumn(#"Inserted Year", "Quarter", each Date.QuarterOfYear([Fecha]), Int64.Type),
+		#"Inserted Month" = Table.AddColumn(#"Inserted Year", "Month", each Date.Month([Fecha]), Int64.Type),
+		//#"Inserted Day" = Table.AddColumn(#"Inserted Month", "Day", each Date.Day([Fecha]), Int64.Type),
+		//#"Inserted Merged Column" = Table.AddColumn(#"Inserted Day", "Merged", each Text.Combine({"T", Text.From([Quarter], "es-MX")}), type text),
+		//#"Inserted Month Name" = Table.AddColumn(#"Inserted Month", "Month Name", each Date.MonthName([Fecha]), type text),
+		#"Columnas con nombre cambiado" = Table.RenameColumns(#"Inserted Month",{{"Custom", "FechaSK"}, {"Month", "Month Number"}, {"Fecha", "Date"}}),
+		//#"Inserted First Characters" = Table.AddColumn(#"Inserted Month Name", "First Characters", each Text.Start([Month Name], 3), type text),
+		//#"Inserted Day of Week" = Table.AddColumn(#"Inserted First Characters", "Day of Week", each Date.DayOfWeek([Fecha]), Int64.Type),
+		//#"Inserted Week of Year" = Table.AddColumn(#"Inserted Day of Week", "Week of Year", each Date.WeekOfYear([Fecha]), Int64.Type),
+		//#"Inserted Week of Month" = Table.AddColumn(#"Inserted Week of Year", "Week of Month", each Date.WeekOfMonth([Fecha]), Int64.Type),
+		//#"Inserted End of Week" = Table.AddColumn(#"Inserted Week of Month", "End of Week", each Date.EndOfWeek([Fecha],Day.Monday), type date),
+		//#"Inserted Day of Year" = Table.AddColumn(#"Inserted End of Week", "Day of Year", each Date.DayOfYear([Fecha]), Int64.Type),
+		//#"Inserted Day Name" = Table.AddColumn(#"Inserted Day of Year", "Day Name", each Date.DayOfWeekName([Fecha]), type text),
+		//#"Inserted First Characters1" = Table.AddColumn(#"Inserted Day Name", "First Characters.1", each Text.Start([Day Name], 3), type text),
+		//#"Inserted Merged Column1" = Table.AddColumn(#"Inserted First Characters1", "Merged.1", each Text.Combine({Text.From([Year], "es-MX"), [Merged]}, "/"), type text),
+		//#"Inserted First Characters2" = Table.AddColumn(#"Inserted Merged Column1", "First Characters.2", each Text.Start([Custom], 6), type text),
+		//#"Split Column by Position" = Table.SplitColumn(#"Inserted First Characters2", "First Characters.2", Splitter.SplitTextByPositions({0, 4}, false), {"First Characters.2.1", "First Characters.2.2"}),
+		//#"Merged Columns" = Table.CombineColumns(#"Split Column by Position",{"First Characters.2.1", "First Characters.2.2"},Combiner.CombineTextByDelimiter("/", QuoteStyle.None),"Merged.3"),
+		//#"Inserted Merged Column2" = Table.AddColumn(#"Merged Columns", "Merged.2", each Text.Combine({Text.From([Year], "es-MX"), "/", [First Characters]}), type text),
+		//#"Replaced Value" = Table.ReplaceValue(#"Inserted Merged Column2",0,7,Replacer.ReplaceValue,{"Day of Week"}),
+		//#"Renamed Columns1" = Table.RenameColumns(#"Replaced Value",{{"Custom", "FechaSK"}, {"Year", "#Año"}, {"Quarter", "#Trimestre"}, {"Month", "#Mes"}, {"Day", "#Día"}, {"Merged", "Trimestre"}, {"Month Name", "Mes"}, {"First Characters", "MesCorto"}, {"Day of Week", "#DíaSemana"}, {"Week of Year", "#SemanaAño"}, {"Week of Month", "#SemanaMes"}, {"End of Week", "CierreSemana"}, {"Day of Year", "#DíaAño"}, {"Day Name", "Día"}, {"First Characters.1", "DíaCorto"}, {"Merged.1", "AñoTrimestre"}, {"Merged.3", "Año#Mes"}, {"Merged.2", "AñoMesCorto"}}),
+			//#"Inserted Start of Month" = Table.AddColumn(#"Renamed Columns1", "Start of Month", each Date.StartOfMonth([Fecha]), type date),
+			//#"Renamed Columns2" = Table.RenameColumns(#"Inserted Start of Month",{{"Start of Month", "InicioMes"}}),
+			//#"Inserted End of Month" = Table.AddColumn(#"Renamed Columns2", "End of Month", each Date.EndOfMonth([Fecha]), type date),
+			//#"Renamed Columns3" = Table.RenameColumns(#"Inserted End of Month",{{"End of Month", "FinMes"}}),
+		#"Inserted Sprint" = Table.AddColumn(#"Columnas con nombre cambiado", "Sprint", each "Sprint " & Text.From(29 + Number.IntegerDivide(Duration.Days([Date] - #date(2018, 2, 7)), 14)), type text),
+
+		// Crear tabla con fecha inicio y fin por sprint
+		#"Agrupado por Sprint" = Table.Group(#"Inserted Sprint", {"Sprint"}, {{"Sprint Start Date", each List.Min([Date]), type nullable date}, {"Sprint End Date", each List.Max([Date]), type nullable date}, {"Year", each List.Min([Year]), Int64.Type}, {"Month Number", each List.Min([Month Number]), Int64.Type}}),
+		#"Inserted Month Name" = Table.AddColumn(#"Agrupado por Sprint", "Month Name", each Text.Proper(Date.MonthName(#date(2024, [Month Number], 1))), type text),
+		#"Inserted Path Sprint" = Table.AddColumn(#"Inserted Month Name", "Path Sprint", each ("Bancolombia Agil\" & Text.From([Year]) & "\" & [Sprint]), type text)
+	in
+		#"Inserted Path Sprint"
